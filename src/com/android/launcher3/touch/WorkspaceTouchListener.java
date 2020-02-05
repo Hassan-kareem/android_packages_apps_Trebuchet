@@ -39,6 +39,7 @@ import com.android.launcher3.AbstractFloatingView;
 import com.android.launcher3.CellLayout;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.Launcher;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.Workspace;
 import com.android.launcher3.dragndrop.DragLayer;
 import com.android.launcher3.logger.LauncherAtom;
@@ -63,6 +64,8 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
     private static final int STATE_PENDING_PARENT_INFORM = 2;
     private static final int STATE_COMPLETED = 3;
 
+    private static final String SLEEP_GESTURE = "pref_sleep_gesture";
+
     private final Rect mTempRect = new Rect();
     private final Launcher mLauncher;
     private final Workspace<?> mWorkspace;
@@ -73,13 +76,17 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
 
     private final GestureDetector mGestureDetector;
 
+    private final Context mContext;
+
     public WorkspaceTouchListener(Launcher launcher, Workspace<?> workspace) {
         mLauncher = launcher;
         mWorkspace = workspace;
+        mContext = workspace.getContext();
         // Use twice the touch slop as we are looking for long press which is more
         // likely to cause movement.
         mTouchSlop = 2 * ViewConfiguration.get(launcher).getScaledTouchSlop();
-        mGestureDetector = new GestureDetector(workspace.getContext(), this);
+        mPm = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
+        mGestureDetector = new GestureDetector(mContext, this);
     }
 
     @Override
@@ -209,5 +216,12 @@ public class WorkspaceTouchListener extends GestureDetector.SimpleOnGestureListe
                 cancelLongPress();
             }
         }
+    }
+
+    @Override
+    public boolean onDoubleTap(MotionEvent event) {
+        if (LauncherPrefs.getPrefs(mContext).getBoolean(SLEEP_GESTURE, true))
+            mPm.goToSleep(event.getEventTime());
+        return true;
     }
 }
